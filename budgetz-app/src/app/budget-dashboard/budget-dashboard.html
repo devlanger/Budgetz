@@ -1,0 +1,38 @@
+<p>Budget Dashboard</p>
+
+<label>
+  Month:
+  <select [(ngModel)]="selectedMonth" (change)="onMonthChange()">
+    <option *ngFor="let month of months" [value]="month">{{month}}</option>
+  </select>
+</label>
+
+<h1>Remaining: {{getBudgetSummary().remaining}}</h1>
+
+<div *ngIf="loading" class="spinner">
+  Loading...
+</div>
+<ul>
+  <li *ngFor="let expense of expenses">{{expense.name}}: ${{expense.amount}}
+
+    <button (click)="removeExpense(expense)">-</button>
+  </li>
+</ul>
+
+<button (click)="openModal()">Add Expense</button>
+
+<div *ngIf="showModal" class="modal-backdrop">
+  <div class="modal">
+    <h2>Add Expense</h2>
+    <label>
+      Name:
+      <input [(ngModel)]="newExpenseName" />
+    </label>
+    <label>
+      Amount:
+      <input type="number" [(ngModel)]="newExpenseAmount" />
+    </label>
+    <button (click)="addExpense()">Add</button>
+    <button (click)="closeModal()">Cancel</button>
+  </div>
+</div>
