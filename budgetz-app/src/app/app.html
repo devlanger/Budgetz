@@ -7,6 +7,9 @@
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 </head>
 
+<app-navbar (pageChange)="setPage($event)"></app-navbar>
+
 <main>
-  <app-budget-dashboard></app-budget-dashboard>
+  <app-budget-dashboard *ngIf="page === 'dashboard'"></app-budget-dashboard>
+  <app-statistics-page *ngIf="page === 'statistics'"></app-statistics-page>
 </main>

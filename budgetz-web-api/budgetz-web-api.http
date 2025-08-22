@@ -1,6 +1,6 @@
-@budgetz_web_api_HostAddress = http://localhost:5057
+@Budgetz_HostAddress = http://localhost:5057
 
-GET {{budgetz_web_api_HostAddress}}/weatherforecast/
+GET {{Budgetz_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###

@@ -1,6 +1,10 @@
+using Budgetz.Mediatr.Expenses.Queries;
 using Budgetz.Models;
 using Budgetz.Services;
+using Budgetz.Mediatr.Expenses.Commands;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Budgetz.Mediatr.Expenses.Models;
 
 namespace Budgetz.Controllers;
 
@@ -9,51 +13,48 @@ namespace Budgetz.Controllers;
 public class ExpenseController : ControllerBase
 {
     private readonly ILogger<ExpenseController> _logger;
-    private readonly ExpenseService _expenseService;
+    private readonly IMediator _mediator;
 
     public object _lock = new();
 
     public ExpenseController(
         ILogger<ExpenseController> logger,
-        ExpenseService expenseService)
+        IMediator mediator)
     {
         _logger = logger;
-        _expenseService = expenseService;
+        _mediator = mediator;
     }
 
-    public IEnumerable<Expense> Get(string month)
-    {
-        return _expenseService.Expenses.Where(e => e.Month == month).ToList();
-    }
+    [HttpGet]
+    public IEnumerable<Expense> Get(string month) => _mediator.Send(new GetExpensesByMonthQuery(month)).Result;
+
+    [HttpGet("GetByYear")]
+    public IEnumerable<Expense> GetByYear(string year) => _mediator.Send(new GetExpensesByYearQuery(year)).Result;
 
     [HttpDelete("{id:int}")]
     public IActionResult Delete(int id)
     {
         lock (_lock)
         {
-            var x = _expenseService.Expenses.FirstOrDefault(e => e.Id == id);
-            if(x != null)
-            {
-                _expenseService.Expenses.Remove(x);
-            }
+            var value = new { id = id };
+            return _mediator.Send(new DeleteExpenseCommand(id)).Result
+                ? Ok(value)
+                : NotFound(value);       
         }
-
-        return CreatedAtAction(nameof(Delete), new { id = id });
     }
 
     [HttpPost]
-    public IActionResult Create([FromBody] Expense expense)
+    public IActionResult Create([FromBody] CreateExpenseDto dto)
     {
-        var e = new Expense()
-        {
-            Id = _expenseService.Expenses.Count + 1,
-            Name = expense.Name,
-            Amount = expense.Amount,
-            Date = expense.Date,
-            Month = expense.Month
-        };
+        var result = _mediator.Send(new CreateExpenseCommand(dto));
+        return CreatedAtAction(nameof(Create), result);
+    }
 
-        _expenseService.Expenses.Add(e);
-        return CreatedAtAction(nameof(Create), new { id = expense.Id }, expense);
+
+    [HttpPut("{id:int}")]
+    public IActionResult Edit([FromBody] EditExpenseDto dto)
+    {
+        var result = _mediator.Send(new EditExpenseCommand(dto));
+        return CreatedAtAction(nameof(Create), result);
     }
 }

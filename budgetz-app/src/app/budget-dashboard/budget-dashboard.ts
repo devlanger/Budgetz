@@ -2,27 +2,41 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LocalExpenseService } from '../services/local-expense.service';
-import { Expense } from '../services/expense.service';
 import { ApiExpenseService } from '../services/api-expense.service';
+import { Expense, ExpenseType, RecurringType } from '../models/Expense';
+import { StatisticsComponent } from "../statistics-component/statistics-component";
+import { ChartsComponent } from "../chart-component/chart-component";
 
 @Component({
   selector: 'app-budget-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, StatisticsComponent, ChartsComponent],
   templateUrl: './budget-dashboard.html',
   styleUrl: './budget-dashboard.scss'
 })
 export class BudgetDashboard implements OnInit {
-  months = ['2025-01', '2025-02', '2025-03', '2025-04', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12'];
-  selectedMonth = this.months[new Date().getMonth()];
+  selectedMonth = new Date().toISOString().slice(0, 7);
   expenses: Expense[] = [];
   totalBudget = 10000;
   showModal = false;
   newExpenseName = '';
   newExpenseAmount: number | null = null;
+  newExpenseCategory = 'Other';
+  newExpenseRecurring: RecurringType = RecurringType.None;
+  categories = ['Food', 'Rent', 'Utilities', 'Entertainment', 'Transport', 'Other'];
+  recurringTypes = [
+    { value: RecurringType.None, label: 'None' },
+    { value: RecurringType.Monthly, label: 'Monthly' },
+    { value: RecurringType.Yearly, label: 'Yearly' }
+  ];
   loading = false;
+  RecurringType = RecurringType;
+  ExpenseType = ExpenseType;
+  newExpenseType: ExpenseType = ExpenseType.Expense;
+  showEditModal = false;
+  editExpense: Expense | null = null;
 
-  constructor(private expenseService: ApiExpenseService) {}
+  constructor(private expenseService: ApiExpenseService) { }
 
   async ngOnInit() {
     this.loading = true;
@@ -44,8 +58,11 @@ export class BudgetDashboard implements OnInit {
 
   openModal() {
     this.showModal = true;
+    this.newExpenseType = ExpenseType.Expense;
     this.newExpenseName = '';
     this.newExpenseAmount = null;
+    this.newExpenseCategory = 'Other';
+    this.newExpenseRecurring = RecurringType.None;
   }
 
   closeModal() {
@@ -63,8 +80,15 @@ export class BudgetDashboard implements OnInit {
   }
 
   async addExpense() {
-    if (this.newExpenseName && this.newExpenseAmount !== null) {
-      const expense = { name: this.newExpenseName, amount: this.newExpenseAmount, month: this.selectedMonth };
+    if (this.newExpenseName && this.newExpenseAmount !== null && this.newExpenseCategory) {
+      const expense: Expense = {
+        name: this.newExpenseName,
+        amount: this.newExpenseAmount,
+        month: this.selectedMonth,
+        category: this.newExpenseCategory,
+        recurring: this.newExpenseRecurring,
+        type: this.newExpenseType
+      };
       await this.expenseService.addExpense(expense);
       await this.loadExpensesForMonth();
       this.closeModal();
@@ -78,12 +102,74 @@ export class BudgetDashboard implements OnInit {
     this.loading = false;
   }
 
+  openEditModal(expense: Expense) {
+    this.editExpense = { ...expense }; // clone to avoid direct mutation
+    this.showEditModal = true;
+  }
+
+  closeEditModal() {
+    this.showEditModal = false;
+    this.editExpense = null;
+  }
+
+  async saveEditExpense() {
+    if (this.editExpense) {
+      await this.expenseService.updateExpense(this.editExpense);
+      await this.loadExpensesForMonth();
+      this.closeEditModal();
+    }
+  }
+
   getBudgetSummary() {
-    const spent = this.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const income = this.expenses
+      .filter(e => e.type === ExpenseType.Income)
+      .reduce((sum, e) => sum + e.amount, 0);
+    const expenses = this.expenses
+      .filter(e => e.type === ExpenseType.Expense)
+      .reduce((sum, e) => sum + e.amount, 0);
     return {
-      totalBudget: this.totalBudget,
-      spent,
-      remaining: this.totalBudget - spent
+      income,
+      expenses,
+      remaining: income - expenses
     };
+  }
+
+  getMonthlyStats() {
+    const stats: { category: string; amount: number; percent: number }[] = [];
+    const now = new Date();
+    const currentMonth = now.toISOString().slice(0, 7); // "YYYY-MM"
+    const expensesOnly = this.expenses.filter(
+      e => e.type === ExpenseType.Expense && e.month === currentMonth
+    );
+    const total = expensesOnly.reduce((sum, e) => sum + e.amount, 0);
+
+    for (const cat of this.categories) {
+      const amount = expensesOnly
+        .filter(e => e.category === cat)
+        .reduce((sum, e) => sum + e.amount, 0);
+      const percent = total ? Math.round((amount / total) * 100) : 0;
+      if (percent > 0) {
+        stats.push({ category: cat, amount, percent });
+      }
+    }
+    return stats;
+  }
+
+  getRecurringLabel(value: RecurringType): string {
+    const type = this.recurringTypes.find(t => t.value === value);
+    return type ? type.label : '';
+  }
+
+  changeMonth(offset: number) {
+    const [year, month] = this.selectedMonth.split('-').map(Number);
+    // Create a date object for the first day of the current month
+    const date = new Date(year, month - 1, 1);
+    // Add offset months
+    date.setMonth(date.getMonth() + offset);
+    // Format back to YYYY-MM
+    const newMonth = date.getFullYear().toString().padStart(4, '0') + '-' +
+      (date.getMonth() + 1).toString().padStart(2, '0');
+    this.selectedMonth = newMonth;
+    this.onMonthChange();
   }
 }

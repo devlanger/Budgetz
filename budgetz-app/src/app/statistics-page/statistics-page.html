@@ -1,0 +1,18 @@
+<div class="card mt-4">
+  <h4 class="mb-3">Yearly Expense Statistics ({{currentYear}})</h4>
+  <div *ngIf="loading" class="spinner">Loading...</div>
+  <ul class="list-group" *ngIf="!loading">
+    <li class="list-group-item d-flex justify-content-between align-items-center"
+        *ngFor="let stat of getYearlyStats()">
+      <span>{{stat.category}}</span>
+      <span>
+        ${{stat.amount}}
+        <span class="badge bg-primary ms-2">{{stat.percent}}%</span>
+      </span>
+    </li>
+  </ul>
+  <div *ngIf="!loading && getYearlyStats().length === 0" class="text-muted mt-2">
+    No expenses for this year.
+  </div>
+</div>
+<app-charts [categoryStats]="getYearlyStats()"></app-charts>

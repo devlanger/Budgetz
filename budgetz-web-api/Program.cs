@@ -1,5 +1,9 @@
 
+using Budgetz.Interfaces;
+using Budgetz.Models;
 using Budgetz.Services;
+using MediatR;
+using System.Reflection;
 
 namespace Budgetz;
 
@@ -25,7 +29,8 @@ public class Program
             });
         });
 
-        builder.Services.AddSingleton<ExpenseService>();
+        builder.Services.AddSingleton<IRepository<Expense>, ExpenseService>();
+        builder.Services.AddMediatR(Assembly.GetExecutingAssembly());
 
         var app = builder.Build();
 

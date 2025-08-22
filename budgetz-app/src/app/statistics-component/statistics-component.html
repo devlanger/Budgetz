@@ -1,0 +1,14 @@
+<div class="card mt-4">
+  <h5 class="mb-3">Monthly Category Statistics</h5>
+  <ul class="list-group">
+    <li class="list-group-item d-flex justify-content-between align-items-center"
+        *ngFor="let stat of getCategoryStats()">
+      <span>{{stat.category}}</span>
+      <span>
+        ${{stat.amount}} 
+        <span class="badge bg-primary ms-2">{{stat.percent}}%</span>
+      </span>
+    </li>
+  </ul>
+  <div *ngIf="total === 0" class="text-muted mt-2">No expenses for this month.</div>
+</div>

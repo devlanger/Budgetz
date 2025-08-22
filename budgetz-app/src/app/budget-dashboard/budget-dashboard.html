@@ -1,38 +1,129 @@
-<p>Budget Dashboard</p>
 
-<label>
-  Month:
-  <select [(ngModel)]="selectedMonth" (change)="onMonthChange()">
-    <option *ngFor="let month of months" [value]="month">{{month}}</option>
-  </select>
-</label>
-
-<h1>Remaining: {{getBudgetSummary().remaining}}</h1>
-
-<div *ngIf="loading" class="spinner">
-  Loading...
-</div>
-<ul>
-  <li *ngFor="let expense of expenses">{{expense.name}}: ${{expense.amount}}
-
-    <button (click)="removeExpense(expense)">-</button>
-  </li>
-</ul>
-
-<button (click)="openModal()">Add Expense</button>
-
-<div *ngIf="showModal" class="modal-backdrop">
-  <div class="modal">
-    <h2>Add Expense</h2>
-    <label>
-      Name:
-      <input [(ngModel)]="newExpenseName" />
-    </label>
-    <label>
-      Amount:
-      <input type="number" [(ngModel)]="newExpenseAmount" />
-    </label>
-    <button (click)="addExpense()">Add</button>
-    <button (click)="closeModal()">Cancel</button>
+<div class="d-flex gap-4">
+<div class="card flex-fill">
+  <div class="d-flex align-items-center mb-3">
+    <button class="btn btn-outline-secondary me-2" (click)="changeMonth(-1)">
+      &lt; Back
+    </button>
+    <div class="flex-grow-1 d-flex justify-content-center">
+      <input
+        type="month"
+        class="form-control w-auto"
+        [(ngModel)]="selectedMonth"
+        (change)="onMonthChange()"
+      />
+    </div>
+    <button class="btn btn-outline-secondary ms-2" style="margin-left:auto;" (click)="changeMonth(1)">
+      Next &gt;
+    </button>
   </div>
+
+  <h1>Remaining: {{getBudgetSummary().remaining}}</h1>
+
+  <div *ngIf="loading" class="spinner">
+    Loading...
+  </div>
+  <ul>
+    <li *ngFor="let expense of expenses">
+      <span>
+        {{expense.name}} ({{expense.category}}): ${{expense.amount}}
+        <span *ngIf="expense.recurring !== RecurringType.None" class="badge bg-info ms-2">
+          {{ getRecurringLabel(expense.recurring ?? RecurringType.None) }}
+        </span>
+        <span
+          class="badge ms-2"
+          [ngClass]="{
+            'bg-secondary': expense.type === ExpenseType.Expense,
+            'bg-success': expense.type === ExpenseType.Income
+          }"
+        >
+          {{expense.type === ExpenseType.Income ? 'Income' : 'Expense'}}
+        </span>
+      </span>
+      <button class="btn btn-sm btn-secondary ms-2" (click)="openEditModal(expense)">Edit</button>
+      <button class="btn btn-sm btn-danger ms-2" (click)="removeExpense(expense)">Delete</button>
+    </li>
+  </ul>
+
+  <button (click)="openModal()">Add Expense</button>
+
+  <div *ngIf="showModal" class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.4);">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Add Expense</h2>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+        <div class="modal-body">
+          <label>
+            Name:
+            <input [(ngModel)]="newExpenseName" class="form-control mb-2" />
+          </label>
+          <label>
+            Amount:
+            <input type="number" [(ngModel)]="newExpenseAmount" class="form-control mb-2" />
+          </label>
+          <label>
+            Category:
+            <select [(ngModel)]="newExpenseCategory" class="form-select mb-3">
+              <option *ngFor="let cat of categories" [value]="cat">{{cat}}</option>
+            </select>
+          </label>
+          <label>
+            Recurring:
+            <select [(ngModel)]="newExpenseRecurring" class="form-select mb-3">
+              <option *ngFor="let type of recurringTypes" [value]="type.value">{{type.label}}</option>
+            </select>
+          </label>
+          <label>
+            Type:
+            <select [(ngModel)]="newExpenseType" class="form-select mb-3">
+              <option [value]="ExpenseType.Expense">Expense</option>
+              <option [value]="ExpenseType.Income">Income</option>
+            </select>
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary me-2" (click)="addExpense()">Add</button>
+          <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div *ngIf="showEditModal" class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.4);">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Edit Expense/Income</h2>
+          <button type="button" class="btn-close" (click)="closeEditModal()"></button>
+        </div>
+        <!-- Edit Modal Body -->
+        <div class="modal-body" *ngIf="editExpense">
+          <label>Name: <input [(ngModel)]="editExpense.name" class="form-control mb-2" /></label>
+          <label>Amount: <input type="number" [(ngModel)]="editExpense.amount" class="form-control mb-2" /></label>
+          <label>Category:
+            <select [(ngModel)]="editExpense.category" class="form-select mb-2">
+              <option *ngFor="let cat of categories" [value]="cat">{{cat}}</option>
+            </select>
+          </label>
+          <!-- Other fields -->
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary me-2" (click)="saveEditExpense()">Save</button>
+          <button class="btn btn-secondary" (click)="closeEditModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <app-statistics [expenses]="expenses" [categories]="categories">
+  </app-statistics>
+  
+</div>
+
+<div class="card flex-fill">
+  <app-charts [categoryStats]="getMonthlyStats()"></app-charts>
+</div>
 </div>

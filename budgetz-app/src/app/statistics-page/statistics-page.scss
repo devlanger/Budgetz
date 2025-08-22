@@ -1,0 +1,13 @@
+.card {
+  margin-top: 2rem;
+}
+.spinner {
+  text-align: center;
+  color: #007bff;
+  padding: 1rem;
+}
+:host {
+  display: block;
+  max-width: 540px;
+  margin: 2rem auto;
+}
